@@ -7,14 +7,32 @@ const API_KEY = process.env.API_KEY;;
 const DATE_FILE = "last_date.json"; // hvor vi gemmer datoen lokalt
 
 // Funktion der læser og opdaterer dato
+const COUNTER_FILE = "./counter.json"; // ny fil til at tælle antal kald
+
 function getNextDate() {
+  // læs nuværende tæller
+  let counter = 0;
+  if (fs.existsSync(COUNTER_FILE)) {
+    counter = JSON.parse(fs.readFileSync(COUNTER_FILE, "utf8")).count;
+  }
+
+  counter += 1; // +1 for hvert kald
+  fs.writeFileSync(COUNTER_FILE, JSON.stringify({ count: counter }, null, 2));
+
   let date;
+
+  // læs den sidste dato fra fil
   if (fs.existsSync(DATE_FILE)) {
     const data = JSON.parse(fs.readFileSync(DATE_FILE, "utf8"));
     date = new Date(Date.UTC(data.year, data.month - 1, data.day));
-    date.setUTCDate(date.getUTCDate() + 1); // ⚠️ Brug UTC for konsistent adfærd
+
+    // 👉 kun hop en dag frem, hver 2. gang
+    if (counter % 2 === 0) {
+      date.setUTCDate(date.getUTCDate() + 1);
+    }
   } else {
-    date = new Date(Date.UTC(2017, 0, 1)); // start 1. januar 2017
+    // hvis filen ikke findes, start ved 2017-01-01
+    date = new Date(Date.UTC(2017, 0, 1));
   }
 
   const result = {
@@ -23,10 +41,9 @@ function getNextDate() {
     day: date.getUTCDate(),
   };
 
-  // gem ny dato i fil
   fs.writeFileSync(DATE_FILE, JSON.stringify(result, null, 2));
 
-  console.log("💾 Gemt ny dato:", result);
+  console.log(`💾 Kald #${counter} → dato: ${result.year}-${result.month}-${result.day}`);
   return result;
 }
 
